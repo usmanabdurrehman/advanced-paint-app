@@ -8,12 +8,12 @@ https://paint-app-realtime.vercel.app/
 
 ## Few cool features
 
-- Ability to **Free Draw**, **Draw Shapes**(**Rectangles**, **Circles**, **Arrows**) :rainbow:
+- Ability to **Free Draw**, **Draw Shapes**(**Rectangles**, **Circles**, **Arrows**) :paintbrush: :white_circle: :white_large_square:
 - Ability to **Import Images** into canvas and **Export Your Drawing** :framed_picture:
 - Deployment on **Netlify** :fire:
-- Ability to **Undo**, **Delete** particular shape and **Clear** canvas:
-- Ability to **Resize**, **Rotate** :red_square:
-- Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas.
+- Ability to **Undo**, **Delete** particular shape and **Clear** canvas :arrow_right_hook: :x:
+- Ability to **Resize**, **Rotate** :arrows_counterclockwise: :left_right_arrow:
+- Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas. :heavy_plus_sign: :heavy_minus_sign:
 - **Color Selection** for drawing tools and background :rainbow:
 
 ## Technologies
