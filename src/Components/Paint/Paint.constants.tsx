@@ -8,6 +8,8 @@ import {
   Square,
   Trash,
   XLg,
+  ZoomIn,
+  ZoomOut,
 } from "react-bootstrap-icons";
 import Konva from "konva";
 
@@ -30,6 +32,12 @@ export const FILTERS = [
   Konva.Filters.Blur,
   Konva.Filters.Brighten,
   Konva.Filters.HSL,
+];
+
+export const PAINT_MOVE_OPTIONS = [
+  { id: DrawAction.Move, label: "Pan Canvas", icon: <ArrowsMove /> },
+  { id: DrawAction.ZoomIn, label: "Zoom In Canvas", icon: <ZoomIn /> },
+  { id: DrawAction.ZoomOut, label: "Zoom Out Canvas", icon: <ZoomOut /> },
 ];
 
 export const PAINT_DRAW_OPTIONS = [

@@ -18,6 +18,7 @@ import {
   FILTERS,
   PAINT_CLEAR_OPTIONS,
   PAINT_DRAW_OPTIONS,
+  PAINT_MOVE_OPTIONS,
   SCALE_BY,
 } from "./Paint.constants";
 import { SketchPicker } from "react-color";
@@ -26,18 +27,21 @@ import {
   Button,
   ButtonGroup,
   Flex,
+  Icon,
   IconButton,
   Popover,
   PopoverArrow,
   PopoverCloseButton,
   PopoverContent,
   PopoverTrigger,
+  Text,
 } from "@chakra-ui/react";
 import { Download, Upload, X, XLg } from "react-bootstrap-icons";
 
 interface PaintProps {}
 
-const SIZE = 700;
+const CANVAS_WIDTH = 700;
+const CANVAS_HEIGHT = 550;
 
 const downloadURI = (uri: string | undefined, name: string) => {
   const link = document.createElement("a");
@@ -360,8 +364,6 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     ]);
   }, []);
 
-  console.log({ canvasHistory });
-
   const onUndoClick = useCallback(() => {
     const canvasHistoryPayload = [...canvasHistory];
     console.log({ canvasHistoryPayload, canvasHistory });
@@ -497,7 +499,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files?.[0]) {
         const imageURL = URL.createObjectURL(e.target.files[0]);
-        const image = new Image(SIZE / 2, SIZE / 2);
+        const image = new Image(CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
         image.src = imageURL;
         setImage(image);
       }
@@ -536,11 +538,19 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   );
 
   return (
-    <Box m={4} width={`${SIZE}px`}>
-      <Flex justifyContent={"space-between"} alignItems="center">
-        <Flex gap={6} alignItems="center">
-          <ButtonGroup size="sm" isAttached variant="solid">
-            {PAINT_DRAW_OPTIONS.map(({ id, label, icon }) => (
+    <Flex justifyContent={"center"} m={4}>
+      <Box width={`${CANVAS_WIDTH}px`}>
+        <Flex justifyContent={"center"}>
+          <Flex gap={2} alignItems="center">
+            <img src="/paint.png" width={20} />
+            <Text fontSize={"xl"}>Paint it</Text>
+          </Flex>
+        </Flex>
+        <Flex justifyContent={"space-between"} alignItems="center" mt={4}>
+          <Flex gap={6} alignItems="center">
+            {/*TODO: Investigate Drawing Issue while panning, zoom */}
+            {/* <ButtonGroup size="sm" isAttached variant="solid">
+            {PAINT_MOVE_OPTIONS.map(({ id, label, icon }) => (
               <IconButton
                 aria-label={label}
                 icon={icon}
@@ -548,187 +558,198 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                 colorScheme={id === drawAction ? "whatsapp" : undefined}
               />
             ))}
-          </ButtonGroup>
-          <ButtonGroup size="sm" isAttached variant="solid">
-            {PAINT_CLEAR_OPTIONS.map(({ id, label, icon }) => (
-              <IconButton
-                aria-label={label}
-                icon={icon}
-                onClick={() => onClearOptionClick(id)}
-                isDisabled={
-                  (id === DrawAction.Undo && !canvasHistory?.length) ||
-                  (id === DrawAction.Delete && !currentSelectedShape)
-                }
-              />
-            ))}
-          </ButtonGroup>
-          <Popover>
-            <PopoverTrigger>
-              <Box
-                bg={color}
-                h={"32px"}
-                w={"32px"}
-                borderRadius="lg"
-                cursor="pointer"
-              ></Box>
-            </PopoverTrigger>
-            <PopoverContent width="300">
-              <PopoverArrow />
-              <PopoverCloseButton />
-              {/*@ts-ignore*/}
-              <SketchPicker
-                color={color}
-                onChangeComplete={(selectedColor) =>
-                  setColor(selectedColor.hex)
-                }
-              />
-            </PopoverContent>
-          </Popover>
+          </ButtonGroup> */}
+            <ButtonGroup size="sm" isAttached variant="solid">
+              {PAINT_DRAW_OPTIONS.map(({ id, label, icon }) => (
+                <IconButton
+                  aria-label={label}
+                  icon={icon}
+                  onClick={() => setDrawAction(id)}
+                  colorScheme={id === drawAction ? "whatsapp" : undefined}
+                />
+              ))}
+            </ButtonGroup>
+            <ButtonGroup size="sm" isAttached variant="solid">
+              {PAINT_CLEAR_OPTIONS.map(({ id, label, icon }) => (
+                <IconButton
+                  aria-label={label}
+                  icon={icon}
+                  onClick={() => onClearOptionClick(id)}
+                  isDisabled={
+                    (id === DrawAction.Undo && !canvasHistory?.length) ||
+                    (id === DrawAction.Delete && !currentSelectedShape)
+                  }
+                />
+              ))}
+            </ButtonGroup>
+            <Popover>
+              <PopoverTrigger>
+                <Box
+                  bg={color}
+                  h={"32px"}
+                  w={"32px"}
+                  borderRadius="lg"
+                  cursor="pointer"
+                ></Box>
+              </PopoverTrigger>
+              <PopoverContent width="300">
+                <PopoverArrow />
+                <PopoverCloseButton />
+                {/*@ts-ignore*/}
+                <SketchPicker
+                  color={color}
+                  onChangeComplete={(selectedColor) =>
+                    setColor(selectedColor.hex)
+                  }
+                />
+              </PopoverContent>
+            </Popover>
+          </Flex>
+
+          <Flex gap={4} alignItems="center" height="100%">
+            <input
+              type="file"
+              ref={fileRef}
+              onChange={onImportImageSelect}
+              style={{ display: "none" }}
+            />
+            <Button
+              leftIcon={<Upload />}
+              variant="solid"
+              onClick={onImportImageClick}
+              size="sm"
+            >
+              Import Image
+            </Button>
+            <Button
+              leftIcon={<Download />}
+              colorScheme="whatsapp"
+              variant="solid"
+              onClick={onExportClick}
+              size="sm"
+            >
+              Export
+            </Button>
+          </Flex>
         </Flex>
 
-        <Flex gap={4} alignItems="center" height="100%">
-          <input
-            type="file"
-            ref={fileRef}
-            onChange={onImportImageSelect}
-            style={{ display: "none" }}
-          />
-          <Button
-            leftIcon={<Upload />}
-            variant="solid"
-            onClick={onImportImageClick}
-            size="sm"
-          >
-            Import Image
-          </Button>
-          <Button
-            leftIcon={<Download />}
-            colorScheme="whatsapp"
-            variant="solid"
-            onClick={onExportClick}
-            size="sm"
-          >
-            Export
-          </Button>
-        </Flex>
-      </Flex>
-
-      <Box
-        width={`${SIZE}px`}
-        height={`${SIZE}px`}
-        border="1px solid black"
-        mt={4}
-        overflow="hidden"
-      >
-        <Stage
-          height={SIZE}
-          width={SIZE}
-          ref={stageRef}
-          onMouseUp={onStageMouseUp}
-          draggable={isStageDraggable}
-          onMouseDown={onStageMouseDown}
-          onMouseMove={onStageMouseMove}
-          onClick={onStageClick}
+        <Box
+          width={`${CANVAS_WIDTH}px`}
+          height={`${CANVAS_HEIGHT}px`}
+          border="1px solid black"
+          mt={4}
+          overflow="hidden"
         >
-          <Layer>
-            <KonvaRect
-              x={0}
-              y={0}
-              height={SIZE}
-              width={SIZE}
-              fill="white"
-              id="bg"
-            />
-            <KonvaImage
-              ref={diagramRef}
-              image={image}
-              x={0}
-              y={0}
-              height={SIZE / 2}
-              width={SIZE / 2}
-              onClick={onShapeClick}
-              draggable={isDraggable}
-            />
-            {rectangles?.map((rectangle) => (
+          <Stage
+            height={CANVAS_HEIGHT}
+            width={CANVAS_WIDTH}
+            ref={stageRef}
+            onMouseUp={onStageMouseUp}
+            draggable={isStageDraggable}
+            onMouseDown={onStageMouseDown}
+            onMouseMove={onStageMouseMove}
+            onClick={onStageClick}
+          >
+            <Layer>
               <KonvaRect
-                key={rectangle.id}
-                x={rectangle?.x}
-                y={rectangle?.y}
-                onClick={onShapeClick}
-                height={rectangle?.height}
-                width={rectangle?.width}
-                stroke={rectangle?.color}
-                name={DrawAction.Rectangle}
-                id={rectangle.id}
-                strokeWidth={4}
-                draggable={isDraggable}
-                onDragStart={onDragStart}
-                onTransformStart={onTransformStart}
-                onDragEnd={onDragShapeEnd}
-                scaleX={rectangle.scaleX}
-                scaleY={rectangle.scaleY}
+                x={0}
+                y={0}
+                height={CANVAS_HEIGHT}
+                width={CANVAS_WIDTH}
+                fill="white"
+                id="bg"
               />
-            ))}
-            {circles?.map((circle) => (
-              <KonvaCircle
-                name={DrawAction.Circle}
-                key={circle.id}
-                id={circle.id}
-                x={circle?.x}
-                y={circle?.y}
-                radius={circle?.radius}
-                stroke={circle?.color}
-                strokeWidth={4}
-                draggable={isDraggable}
-                onClick={onShapeClick}
-                onDragStart={onDragStart}
-                onDragEnd={onDragShapeEnd}
-                onTransformStart={onTransformStart}
-                scaleX={circle.scaleX}
-                scaleY={circle.scaleY}
-              />
-            ))}
-            {scribbles.map((scribble) => (
-              <KonvaLine
-                key={scribble.id}
-                id={scribble.id}
-                lineCap="round"
-                lineJoin="round"
-                stroke={scribble?.color}
-                strokeWidth={4}
-                points={scribble.points}
-                name={DrawAction.Scribble}
+              <KonvaImage
+                ref={diagramRef}
+                image={image}
+                x={0}
+                y={0}
+                height={CANVAS_WIDTH / 2}
+                width={CANVAS_WIDTH / 2}
                 onClick={onShapeClick}
                 draggable={isDraggable}
-                onDragStart={onDragStart}
-                onDragEnd={onDragShapeEnd}
-                onTransformStart={onTransformStart}
-                scaleX={scribble.scaleX}
-                scaleY={scribble.scaleY}
               />
-            ))}
-            {arrows.map((arrow) => (
-              <KonvaArrow
-                name={DrawAction.Arrow}
-                key={arrow.id}
-                id={arrow.id}
-                points={arrow.points}
-                fill={arrow.color}
-                stroke={arrow.color}
-                strokeWidth={4}
-                onClick={onShapeClick}
-                draggable={isDraggable}
-                onDragStart={onDragStart}
-                onDragEnd={onDragShapeEnd}
-                onTransformStart={onTransformStart}
-                scaleX={arrow.scaleX}
-                scaleY={arrow.scaleY}
-              />
-            ))}
-            <Transformer ref={transformerRef} rotateEnabled={false} />
-          </Layer>
-        </Stage>
+              {rectangles?.map((rectangle) => (
+                <KonvaRect
+                  key={rectangle.id}
+                  x={rectangle?.x}
+                  y={rectangle?.y}
+                  onClick={onShapeClick}
+                  height={rectangle?.height}
+                  width={rectangle?.width}
+                  stroke={rectangle?.color}
+                  name={DrawAction.Rectangle}
+                  id={rectangle.id}
+                  strokeWidth={4}
+                  draggable={isDraggable}
+                  onDragStart={onDragStart}
+                  onTransformStart={onTransformStart}
+                  onDragEnd={onDragShapeEnd}
+                  scaleX={rectangle.scaleX}
+                  scaleY={rectangle.scaleY}
+                />
+              ))}
+              {circles?.map((circle) => (
+                <KonvaCircle
+                  name={DrawAction.Circle}
+                  key={circle.id}
+                  id={circle.id}
+                  x={circle?.x}
+                  y={circle?.y}
+                  radius={circle?.radius}
+                  stroke={circle?.color}
+                  strokeWidth={4}
+                  draggable={isDraggable}
+                  onClick={onShapeClick}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragShapeEnd}
+                  onTransformStart={onTransformStart}
+                  scaleX={circle.scaleX}
+                  scaleY={circle.scaleY}
+                />
+              ))}
+              {scribbles.map((scribble) => (
+                <KonvaLine
+                  key={scribble.id}
+                  id={scribble.id}
+                  lineCap="round"
+                  lineJoin="round"
+                  stroke={scribble?.color}
+                  strokeWidth={4}
+                  points={scribble.points}
+                  name={DrawAction.Scribble}
+                  onClick={onShapeClick}
+                  draggable={isDraggable}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragShapeEnd}
+                  onTransformStart={onTransformStart}
+                  scaleX={scribble.scaleX}
+                  scaleY={scribble.scaleY}
+                />
+              ))}
+              {arrows.map((arrow) => (
+                <KonvaArrow
+                  name={DrawAction.Arrow}
+                  key={arrow.id}
+                  id={arrow.id}
+                  points={arrow.points}
+                  fill={arrow.color}
+                  stroke={arrow.color}
+                  strokeWidth={4}
+                  onClick={onShapeClick}
+                  draggable={isDraggable}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragShapeEnd}
+                  onTransformStart={onTransformStart}
+                  scaleX={arrow.scaleX}
+                  scaleY={arrow.scaleY}
+                />
+              ))}
+              <Transformer ref={transformerRef} rotateEnabled={false} />
+            </Layer>
+          </Stage>
+        </Box>
       </Box>
-    </Box>
+    </Flex>
   );
 });
