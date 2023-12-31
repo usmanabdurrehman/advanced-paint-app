@@ -1,30 +1,30 @@
-# React + TypeScript + Vite
+# Paint it
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+:boom: An advanced React Paint Application :boom:
 
-Currently, two official plugins are available:
+## Deployment link
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+https://paint-app-realtime.vercel.app/
 
-## Expanding the ESLint configuration
+## Few cool features
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- Ability to **Free Draw**, **Draw Shapes**(**Rectangles**, **Circles**, **Arrows**) :rainbow:
+- Ability to **Import Images** into canvas and **Export Your Drawing** :framed_picture:
+- Deployment on **Netlify** :fire:
+- Ability to **Undo**, **Delete** particular shape and **Clear** canvas:
+- Ability to **Resize**, **Rotate** :red_square:
+- Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas.
+- **Color Selection** for drawing tools and background :rainbow:
 
-- Configure the top-level `parserOptions` property like this:
+## Technologies
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
+- React <img alt="react" src="https://img.shields.io/badge/-React-45b8d8?style=flat-square&logo=react&logoColor=white" />
+- Konva <img alt="konva" src="https://img.shields.io/badge/-Konva-0D83CD?style=flat-square&logo=konva&logoColor=white" />
+- Chakra UI <img alt="chakra ui" src="https://img.shields.io/badge/-Chakra%20UI-319795?style=flat-square&logo=chakraui&logoColor=white" />
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## How to run
+
+- git clone https://github.com/usmanabdurrehman/advanced-paint-app.git
+- cd advanced-paint-app
+- yarn
+- yarn dev
