@@ -4,7 +4,7 @@
 
 ## Deployment link
 
-https://paint-app-realtime.vercel.app/
+https://paint-it2.netlify.app/
 
 ## Few cool features
 
