@@ -24,7 +24,7 @@ export enum DrawAction {
   Scribble = "freedraw",
   Arrow = "arrow",
   Delete = "delete",
-  Erase = "erase",
+  Clear = "clear",
   Undo = "undo",
 }
 
@@ -58,7 +58,7 @@ export const PAINT_CLEAR_OPTIONS = [
     label: "Delete Shape",
     icon: <Trash />,
   },
-  { id: DrawAction.Erase, label: "Clear Whole Canvas", icon: <XLg /> },
+  { id: DrawAction.Clear, label: "Clear Whole Canvas", icon: <XLg /> },
   { id: DrawAction.Undo, label: "Undo Action", icon: <ArrowClockwise /> },
 ];
 

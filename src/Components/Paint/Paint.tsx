@@ -1,5 +1,5 @@
 import { KonvaEventObject } from "konva/lib/Node";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Stage,
   Layer,
@@ -26,7 +26,10 @@ import {
   Box,
   Button,
   ButtonGroup,
+  filter,
   Flex,
+  FormControl,
+  FormLabel,
   Icon,
   IconButton,
   Popover,
@@ -34,9 +37,14 @@ import {
   PopoverCloseButton,
   PopoverContent,
   PopoverTrigger,
+  RangeSlider,
+  RangeSliderFilledTrack,
+  RangeSliderThumb,
+  RangeSliderTrack,
   Text,
 } from "@chakra-ui/react";
-import { Download, Upload, X, XLg } from "react-bootstrap-icons";
+import { DiamondHalf, Download, Upload, X, XLg } from "react-bootstrap-icons";
+import { usePaintKeyBindings } from "./usePaintKeyBindings";
 
 interface PaintProps {}
 
@@ -67,6 +75,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [texts, setTexts] = useState<Text[]>([]);
   const [image, setImage] = useState<HTMLImageElement>();
+  const [images, setImages] = useState<HTMLImageElement[]>([]);
 
   const [textPosition, setTextPosition] = useState<{ x: number; y: number }>();
   const [editText, setEditText] = useState("");
@@ -255,7 +264,6 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     }
   }, [drawAction, stageRef]);
 
-  const diagramRef = useRef<any>(null);
   const [currentSelectedShape, setCurrentSelectedShape] = useState<{
     type: DrawAction;
     id: string;
@@ -366,9 +374,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
 
   const onUndoClick = useCallback(() => {
     const canvasHistoryPayload = [...canvasHistory];
-    console.log({ canvasHistoryPayload, canvasHistory });
     const lastAction = canvasHistoryPayload.pop();
-    console.log({ lastAction });
     setCanvasHistory(canvasHistoryPayload);
 
     const setter = getSetterByType(lastAction?.drawAction);
@@ -431,6 +437,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
       setter((prevRecords) =>
         prevRecords.filter((record) => record.id !== currentSelectedShape?.id)
       );
+    setCurrentSelectedShape(undefined);
   }, [getSetterByType, getRecordsByType, currentSelectedShape]);
 
   const onClear = useCallback(() => {
@@ -501,7 +508,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         const imageURL = URL.createObjectURL(e.target.files[0]);
         const image = new Image(CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
         image.src = imageURL;
-        setImage(image);
+        setImages((prevImages) => [...prevImages, image]);
       }
       e.target.files = null;
     },
@@ -520,7 +527,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   const onClearOptionClick = useCallback(
     (action: DrawAction) => {
       switch (action) {
-        case DrawAction.Erase: {
+        case DrawAction.Clear: {
           onClear();
           break;
         }
@@ -536,6 +543,33 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     },
     [onClear, onDeleteShape, onUndoClick]
   );
+
+  const onAction = useCallback(
+    (action: DrawAction) => {
+      switch (action) {
+        case DrawAction.Rectangle:
+        case DrawAction.Circle:
+        case DrawAction.Scribble:
+        case DrawAction.Arrow:
+        case DrawAction.Select: {
+          setDrawAction(action);
+        }
+        default: {
+          onClearOptionClick(action);
+        }
+      }
+    },
+    [onClearOptionClick]
+  );
+
+  usePaintKeyBindings({ onAction });
+
+  const [filters, setFilters] = useState({
+    brightness: 0,
+    blur: 0,
+    saturation: 4,
+    hue: 0,
+  });
 
   return (
     <Flex justifyContent={"center"} m={4}>
@@ -604,6 +638,122 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                 />
               </PopoverContent>
             </Popover>
+            <Popover>
+              <PopoverTrigger>
+                <IconButton
+                  size="sm"
+                  icon={<DiamondHalf />}
+                  aria-label="Filters"
+                />
+              </PopoverTrigger>
+              <PopoverContent>
+                <PopoverArrow />
+                <PopoverCloseButton />
+
+                <Box p={4}>
+                  <FormControl>
+                    <FormLabel>Brightness</FormLabel>
+                    <RangeSlider
+                      aria-label={["min", "max"]}
+                      min={-1}
+                      max={1}
+                      step={0.01}
+                      value={[filters.brightness]}
+                      onChange={([value]) => {
+                        const images = stageRef?.current?.find(".image");
+
+                        images?.forEach((image: any) => {
+                          image?.cache();
+                          image?.saturation(value);
+                        });
+
+                        setFilters({ ...filters, brightness: value });
+                      }}
+                    >
+                      <RangeSliderTrack>
+                        <RangeSliderFilledTrack />
+                      </RangeSliderTrack>
+                      <RangeSliderThumb index={0} />
+                    </RangeSlider>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Blur</FormLabel>
+                    <RangeSlider
+                      aria-label={["min", "max"]}
+                      min={0}
+                      max={40}
+                      step={2}
+                      value={[filters.blur]}
+                      onChange={([value]) => {
+                        const images = stageRef?.current?.find(".image");
+
+                        images?.forEach((image: any) => {
+                          image?.cache();
+                          image?.blurRadius(value);
+                        });
+
+                        setFilters({ ...filters, blur: value });
+                      }}
+                    >
+                      <RangeSliderTrack>
+                        <RangeSliderFilledTrack />
+                      </RangeSliderTrack>
+                      <RangeSliderThumb index={0} />
+                    </RangeSlider>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Saturation</FormLabel>
+                    <RangeSlider
+                      aria-label={["min", "max"]}
+                      min={-2}
+                      max={10}
+                      step={0.01}
+                      value={[filters.saturation]}
+                      onChange={([value]) => {
+                        const images = stageRef?.current?.find(".image");
+
+                        images?.forEach((image: any) => {
+                          image?.cache();
+                          image?.saturation(value);
+                        });
+
+                        setFilters({ ...filters, saturation: value });
+                      }}
+                    >
+                      <RangeSliderTrack>
+                        <RangeSliderFilledTrack />
+                      </RangeSliderTrack>
+                      <RangeSliderThumb index={0} />
+                    </RangeSlider>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Hue</FormLabel>
+                    <RangeSlider
+                      aria-label={["min", "max"]}
+                      min={0}
+                      max={259}
+                      step={1}
+                      value={[filters.hue]}
+                      onChange={([value]) => {
+                        const images = stageRef?.current?.find(".image");
+
+                        images?.forEach((image: any) => {
+                          image?.cache();
+                          image?.hue(value);
+                        });
+
+                        setFilters({ ...filters, hue: value });
+                      }}
+                    >
+                      <RangeSliderTrack>
+                        <RangeSliderFilledTrack />
+                      </RangeSliderTrack>
+                      <RangeSliderThumb index={0} />
+                    </RangeSlider>
+                  </FormControl>
+                </Box>
+              </PopoverContent>
+            </Popover>
           </Flex>
 
           <Flex gap={4} alignItems="center" height="100%">
@@ -659,16 +809,20 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                 fill="white"
                 id="bg"
               />
-              <KonvaImage
-                ref={diagramRef}
-                image={image}
-                x={0}
-                y={0}
-                height={CANVAS_WIDTH / 2}
-                width={CANVAS_WIDTH / 2}
-                onClick={onShapeClick}
-                draggable={isDraggable}
-              />
+              {images.map((image, index) => (
+                <KonvaImage
+                  key={index}
+                  image={image}
+                  x={0}
+                  y={0}
+                  height={CANVAS_WIDTH / 2}
+                  width={CANVAS_WIDTH / 2}
+                  onClick={onShapeClick}
+                  draggable={isDraggable}
+                  name="image"
+                  filters={FILTERS}
+                />
+              ))}
               {rectangles?.map((rectangle) => (
                 <KonvaRect
                   key={rectangle.id}
