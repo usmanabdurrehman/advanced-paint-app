@@ -9,7 +9,7 @@ https://paint-it2.netlify.app/
 ## Few cool features
 
 - Ability to **Free Draw**, **Draw Shapes**(**Rectangles**, **Circles**, **Arrows**) :paintbrush: :white_circle: :white_large_square:
-- Ability to **Apply Filters** like **Brightness**, **Blur** etc to images
+- Ability to **Apply Filters** like **Brightness**, **Blur** etc to images :control_knobs:
 - Ability to **Import Images** into canvas and **Export Your Drawing** :framed_picture:
 - Ability to **Undo**, **Delete** particular shape and **Clear** canvas :arrow_right_hook: :x:
 - Ability to **Resize**, **Rotate** :arrows_counterclockwise: :left_right_arrow:
