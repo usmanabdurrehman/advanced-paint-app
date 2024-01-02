@@ -1,4 +1,4 @@
-# Paint it
+# Paint it <img src="./public/paint.png" height="25px" width="25px" style="margin-bottom:-2px;"/>
 
 :boom: An advanced React Paint Application :boom:
 
@@ -9,11 +9,13 @@ https://paint-it2.netlify.app/
 ## Few cool features
 
 - Ability to **Free Draw**, **Draw Shapes**(**Rectangles**, **Circles**, **Arrows**) :paintbrush: :white_circle: :white_large_square:
+- Ability to **Apply Filters** like **Brightness**, **Blur** etc to images
 - Ability to **Import Images** into canvas and **Export Your Drawing** :framed_picture:
 - Ability to **Undo**, **Delete** particular shape and **Clear** canvas :arrow_right_hook: :x:
 - Ability to **Resize**, **Rotate** :arrows_counterclockwise: :left_right_arrow:
-- Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas. :heavy_plus_sign: :heavy_minus_sign:
+- Ability to use **Keyboard Shortcuts** for every feature
 - **Color Selection** for drawing tools and background :rainbow:
+<!-- - Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas. :heavy_plus_sign: :heavy_minus_sign: -->
 
 ## Technologies
 
