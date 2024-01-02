@@ -135,15 +135,17 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
           setTextPosition({ x, y });
           break;
         }
-        case DrawAction.Scribble: {
+        case DrawAction.Scribble:
+        case DrawAction.Eraser: {
           setScribbles((prevScribbles) => [
             ...prevScribbles,
             {
               id,
-              points: [x, y],
+              points: [x, y, x, y],
               color,
               scaleX: 1,
               scaleY: 1,
+              isBrush: drawAction === DrawAction.Scribble,
             },
           ]);
           break;
@@ -207,7 +209,8 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     const y = getNumericVal(pos?.y);
 
     switch (drawAction) {
-      case DrawAction.Scribble: {
+      case DrawAction.Scribble:
+      case DrawAction.Eraser: {
         setScribbles((prevScribbles) =>
           prevScribbles?.map((prevScribble) =>
             prevScribble.id === id
@@ -553,6 +556,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         case DrawAction.Arrow:
         case DrawAction.Select: {
           setDrawAction(action);
+          break;
         }
         default: {
           onClearOptionClick(action);
@@ -879,6 +883,9 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   onTransformStart={onTransformStart}
                   scaleX={scribble.scaleX}
                   scaleY={scribble.scaleY}
+                  globalCompositeOperation={
+                    scribble.isBrush ? "source-over" : "destination-out"
+                  }
                 />
               ))}
               {arrows.map((arrow) => (

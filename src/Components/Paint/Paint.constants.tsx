@@ -4,6 +4,7 @@ import {
   ArrowUpLeft,
   ArrowUpLeftSquareFill,
   Circle,
+  EraserFill,
   Pencil,
   Square,
   Trash,
@@ -26,6 +27,7 @@ export enum DrawAction {
   Delete = "delete",
   Clear = "clear",
   Undo = "undo",
+  Eraser = "eraser",
 }
 
 export const FILTERS = [
@@ -50,6 +52,8 @@ export const PAINT_DRAW_OPTIONS = [
   { id: DrawAction.Circle, label: "Draw Cirle Shape", icon: <Circle /> },
   { id: DrawAction.Arrow, label: "Draw Arrow Shape", icon: <ArrowUpLeft /> },
   { id: DrawAction.Scribble, label: "Scribble", icon: <Pencil /> },
+  // TODO: Eraser tool just draws over lines so find a way to make it work for cases where we want to move stuff
+  // { id: DrawAction.Eraser, label: "Eraser", icon: <EraserFill /> },
 ];
 
 export const PAINT_CLEAR_OPTIONS = [

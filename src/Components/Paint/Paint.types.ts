@@ -22,6 +22,7 @@ export type Circle = Shape & {
 
 export type Scribble = Shape & {
   points: number[];
+  isBrush: boolean;
 };
 
 export type Arrow = Shape & {
