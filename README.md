@@ -13,7 +13,7 @@ https://paint-it2.netlify.app/
 - Ability to **Import Images** into canvas and **Export Your Drawing** :framed_picture:
 - Ability to **Undo**, **Delete** particular shape and **Clear** canvas :arrow_right_hook: :x:
 - Ability to **Resize**, **Rotate** :arrows_counterclockwise: :left_right_arrow:
-- Ability to use **Keyboard Shortcuts** for every feature
+- Ability to use **Keyboard Shortcuts** for every feature :keyboard:
 - **Color Selection** for drawing tools and background :rainbow:
 <!-- - Ability to **Pan**, **Zoom In** and **Zoom Out** Canvas. :heavy_plus_sign: :heavy_minus_sign: -->
 
