@@ -97,7 +97,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   const onBlurTextField = useCallback(() => {
     setTextPosition(undefined);
     const id = currentShapeRef?.current;
-    if (!id) return;
+    if (!id || !textPosition) return;
     setTexts((prevTexts) => [
       ...prevTexts,
       {
@@ -155,6 +155,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         DrawAction.Circle,
         DrawAction.Rectangle,
         DrawAction.Scribble,
+        DrawAction.Text,
       ].includes(drawAction);
 
       shouldUpdateCanvasHistory &&
@@ -357,6 +358,9 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
       case DrawAction.Scribble:
         setter = setScribbles;
         break;
+      case DrawAction.Text:
+        setter = setTexts;
+        break;
     }
     return setter;
   }, []);
@@ -376,6 +380,9 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
           break;
         case DrawAction.Scribble:
           records = scribbles;
+          break;
+        case DrawAction.Text:
+          records = texts;
           break;
       }
       return records;
@@ -487,6 +494,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     setArrows([]);
     setScribbles([]);
     setImages([]);
+    setTexts([]);
   }, []);
 
   const onStageClick = useCallback(
@@ -537,6 +545,28 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
           prevRecords.map((record) =>
             record.id === id
               ? { ...record, x: e.target.x(), y: e.target.y() }
+              : record
+          )
+        );
+    },
+    [getSetterByType]
+  );
+
+  const onTransformEnd = useCallback(
+    (e: KonvaEventObject<MouseEvent>) => {
+      const type = e.target?.attrs?.name;
+      const id = e.target?.attrs?.id;
+
+      const setter = getSetterByType(type);
+      setter &&
+        setter((prevRecords) =>
+          prevRecords.map((record) =>
+            record.id === id
+              ? {
+                  ...record,
+                  scaleX: e.target.attrs.scaleX,
+                  scaleY: e.target.attrs.scaleY,
+                }
               : record
           )
         );
@@ -621,12 +651,23 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   }, [inputRef]);
 
   return (
-    <Flex justifyContent={"center"} m={4}>
+    <Flex
+      justifyContent={"center"}
+      m={4}
+      css={`
+        @import url("https://fonts.googleapis.com/css2?family=Aguafina+Script&display=swap");
+      `}
+    >
       <Box width={`${CANVAS_WIDTH}px`}>
         <Flex justifyContent={"center"}>
           <Flex gap={2} alignItems="center">
-            <img src="/paint.png" width={20} />
-            <ChakraText fontSize={"xl"}>Paint it</ChakraText>
+            <img src="/paint.png" width={40} />
+            <ChakraText
+              fontSize={"xx-large"}
+              fontFamily={`"Aguafina Script", cursive`}
+            >
+              Paint it
+            </ChakraText>
           </Flex>
         </Flex>
         <Flex justifyContent={"space-between"} alignItems="center" mt={4}>
@@ -905,6 +946,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   draggable={isDraggable}
                   onDragStart={onDragStart}
                   onTransformStart={onTransformStart}
+                  onTransformEnd={onTransformEnd}
                   onDragEnd={onDragShapeEnd}
                   scaleX={rectangle.scaleX}
                   scaleY={rectangle.scaleY}
@@ -925,6 +967,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   onDragStart={onDragStart}
                   onDragEnd={onDragShapeEnd}
                   onTransformStart={onTransformStart}
+                  onTransformEnd={onTransformEnd}
                   scaleX={circle.scaleX}
                   scaleY={circle.scaleY}
                 />
@@ -944,6 +987,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   onDragStart={onDragStart}
                   onDragEnd={onDragShapeEnd}
                   onTransformStart={onTransformStart}
+                  onTransformEnd={onTransformEnd}
                   scaleX={scribble.scaleX}
                   scaleY={scribble.scaleY}
                   globalCompositeOperation={
@@ -965,12 +1009,14 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   onDragStart={onDragStart}
                   onDragEnd={onDragShapeEnd}
                   onTransformStart={onTransformStart}
+                  onTransformEnd={onTransformEnd}
                   scaleX={arrow.scaleX}
                   scaleY={arrow.scaleY}
                 />
               ))}
               {texts.map((text) => (
                 <KonvaText
+                  name={DrawAction.Text}
                   key={text.id}
                   text={text.text}
                   id={text.id}
@@ -982,6 +1028,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   onDragStart={onDragStart}
                   onDragEnd={onDragShapeEnd}
                   onTransformStart={onTransformStart}
+                  onTransformEnd={onTransformEnd}
                   onClick={onShapeClick}
                   scaleX={text.scaleX}
                   scaleY={text.scaleY}
