@@ -1,4 +1,4 @@
-import { KonvaEventObject } from "konva/lib/Node";
+import { KonvaEventObject, Node, NodeConfig } from "konva/lib/Node";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Stage,
@@ -8,10 +8,11 @@ import {
   Circle as KonvaCircle,
   Line as KonvaLine,
   Arrow as KonvaArrow,
+  Text as KonvaText,
   Transformer,
 } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
-import { Arrow, Circle, Rectangle, Scribble } from "./Paint.types";
+import { Arrow, Circle, Rectangle, Scribble, Text } from "./Paint.types";
 import {
   CanvasAction,
   DrawAction,
@@ -26,12 +27,11 @@ import {
   Box,
   Button,
   ButtonGroup,
-  filter,
   Flex,
   FormControl,
   FormLabel,
-  Icon,
   IconButton,
+  Input,
   Popover,
   PopoverArrow,
   PopoverCloseButton,
@@ -41,10 +41,11 @@ import {
   RangeSliderFilledTrack,
   RangeSliderThumb,
   RangeSliderTrack,
-  Text,
+  Text as ChakraText,
 } from "@chakra-ui/react";
-import { DiamondHalf, Download, Upload, X, XLg } from "react-bootstrap-icons";
+import { DiamondHalf, Download, Upload } from "react-bootstrap-icons";
 import { usePaintKeyBindings } from "./usePaintKeyBindings";
+import { FEATURE_FLAGS } from "../../constants";
 
 interface PaintProps {}
 
@@ -69,12 +70,13 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
 
   const transformerRef = useRef<any>(null);
 
+  const [{ x: stageX, y: stageY }, setStageXY] = useState({ x: 0, y: 0 });
+
   const [scribbles, setScribbles] = useState<Scribble[]>([]);
   const [rectangles, setRectangles] = useState<Rectangle[]>([]);
   const [circles, setCircles] = useState<Circle[]>([]);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [texts, setTexts] = useState<Text[]>([]);
-  const [image, setImage] = useState<HTMLImageElement>();
   const [images, setImages] = useState<HTMLImageElement[]>([]);
 
   const [textPosition, setTextPosition] = useState<{ x: number; y: number }>();
@@ -87,21 +89,52 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
       payload: any;
     }[]
   >([]);
+
   const [color, setColor] = useState("#000");
   const [drawAction, setDrawAction] = useState<DrawAction>(DrawAction.Scribble);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onBlurTextField = useCallback(() => {
+    setTextPosition(undefined);
+    const id = currentShapeRef?.current;
+    if (!id) return;
+    setTexts((prevTexts) => [
+      ...prevTexts,
+      {
+        id,
+        x: textPosition?.x,
+        y: textPosition?.y,
+        text: editText,
+        color: color,
+        scaleX: 1,
+        scaleY: 1,
+      },
+    ]);
+    setEditText("");
+  }, [editText, color, textPosition]);
 
   const onStageMouseUp = useCallback(() => {
     isPaintRef.current = false;
   }, []);
 
+  const [currentSelectedShape, setCurrentSelectedShape] = useState<{
+    type: DrawAction;
+    id: string;
+    node: Node<NodeConfig>;
+  }>();
+
+  const deSelect = useCallback(() => transformerRef?.current?.nodes([]), []);
+
   const checkDeselect = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
-      const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
+      // This stopped working for some reason
+      // const clickedOnEmpty = e.target === stageRef?.current?.find("#bg")?.[0];
+      const clickedOnEmpty = e.target === stageRef?.current;
       if (clickedOnEmpty) {
-        transformerRef?.current?.nodes([]);
+        deSelect();
       }
     },
-    [stageRef]
+    [stageRef, deSelect]
   );
 
   const onStageMouseDown = useCallback(
@@ -112,8 +145,8 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
       isPaintRef.current = true;
       const stage = stageRef?.current;
       const pos = stage?.getPointerPosition();
-      const x = getNumericVal(pos?.x);
-      const y = getNumericVal(pos?.y);
+      const x = getNumericVal(pos?.x) - stageX;
+      const y = getNumericVal(pos?.y) - stageY;
       const id = uuidv4();
       currentShapeRef.current = id;
 
@@ -132,6 +165,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
 
       switch (drawAction) {
         case DrawAction.Text: {
+          onBlurTextField();
           setTextPosition({ x, y });
           break;
         }
@@ -196,7 +230,15 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         }
       }
     },
-    [checkDeselect, drawAction, color, stageRef]
+    [
+      checkDeselect,
+      drawAction,
+      color,
+      stageRef,
+      stageX,
+      stageY,
+      onBlurTextField,
+    ]
   );
 
   const onStageMouseMove = useCallback(() => {
@@ -205,8 +247,8 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     const stage = stageRef?.current;
     const id = currentShapeRef.current;
     const pos = stage?.getPointerPosition();
-    const x = getNumericVal(pos?.x);
-    const y = getNumericVal(pos?.y);
+    const x = getNumericVal(pos?.x) - stageX;
+    const y = getNumericVal(pos?.y) - stageY;
 
     switch (drawAction) {
       case DrawAction.Scribble:
@@ -265,12 +307,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         break;
       }
     }
-  }, [drawAction, stageRef]);
-
-  const [currentSelectedShape, setCurrentSelectedShape] = useState<{
-    type: DrawAction;
-    id: string;
-  }>();
+  }, [drawAction, stageRef, stageX, stageY]);
 
   const onShapeClick = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
@@ -279,6 +316,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
       setCurrentSelectedShape({
         type: currentTarget?.attrs?.name,
         id: currentTarget?.attrs?.id,
+        node: currentTarget,
       });
       transformerRef?.current?.node(currentTarget);
     },
@@ -448,7 +486,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     setCircles([]);
     setArrows([]);
     setScribbles([]);
-    setImage(undefined);
+    setImages([]);
   }, []);
 
   const onStageClick = useCallback(
@@ -482,6 +520,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
         x: pointer.x - mousePointTo.x * newScale,
         y: pointer.y - mousePointTo.y * newScale,
       };
+
       stage?.position(newPos);
     },
     [drawAction, stageRef]
@@ -566,7 +605,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     [onClearOptionClick]
   );
 
-  usePaintKeyBindings({ onAction });
+  usePaintKeyBindings({ onAction, isWritingInProgress: !!textPosition });
 
   const [filters, setFilters] = useState({
     brightness: 0,
@@ -575,34 +614,46 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     hue: 0,
   });
 
+  const backgroundRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.focus();
+  }, [inputRef]);
+
   return (
     <Flex justifyContent={"center"} m={4}>
       <Box width={`${CANVAS_WIDTH}px`}>
         <Flex justifyContent={"center"}>
           <Flex gap={2} alignItems="center">
             <img src="/paint.png" width={20} />
-            <Text fontSize={"xl"}>Paint it</Text>
+            <ChakraText fontSize={"xl"}>Paint it</ChakraText>
           </Flex>
         </Flex>
         <Flex justifyContent={"space-between"} alignItems="center" mt={4}>
           <Flex gap={6} alignItems="center">
             {/*TODO: Investigate Drawing Issue while panning, zoom */}
-            {/* <ButtonGroup size="sm" isAttached variant="solid">
-            {PAINT_MOVE_OPTIONS.map(({ id, label, icon }) => (
-              <IconButton
-                aria-label={label}
-                icon={icon}
-                onClick={() => setDrawAction(id)}
-                colorScheme={id === drawAction ? "whatsapp" : undefined}
-              />
-            ))}
-          </ButtonGroup> */}
+            {FEATURE_FLAGS.MoveActionButtons && (
+              <ButtonGroup size="sm" isAttached variant="solid">
+                {PAINT_MOVE_OPTIONS.map(({ id, label, icon }) => (
+                  <IconButton
+                    aria-label={label}
+                    icon={icon}
+                    onClick={() => setDrawAction(id)}
+                    colorScheme={id === drawAction ? "whatsapp" : undefined}
+                  />
+                ))}
+              </ButtonGroup>
+            )}
             <ButtonGroup size="sm" isAttached variant="solid">
               {PAINT_DRAW_OPTIONS.map(({ id, label, icon }) => (
                 <IconButton
                   aria-label={label}
                   icon={icon}
-                  onClick={() => setDrawAction(id)}
+                  onClick={() => {
+                    deSelect();
+                    onBlurTextField();
+                    setDrawAction(id);
+                  }}
                   colorScheme={id === drawAction ? "whatsapp" : undefined}
                 />
               ))}
@@ -793,6 +844,8 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
           border="1px solid black"
           mt={4}
           overflow="hidden"
+          pos={"relative"}
+          cursor={mouseCursor}
         >
           <Stage
             height={CANVAS_HEIGHT}
@@ -803,15 +856,25 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
             onMouseDown={onStageMouseDown}
             onMouseMove={onStageMouseMove}
             onClick={onStageClick}
+            x={stageX}
+            y={stageY}
+            onDragEnd={(e: KonvaEventObject<MouseEvent>) => {
+              // setStageXY({ x: e.target.x(), y: e.target.y() });
+            }}
+            onDragMove={() => {
+              backgroundRef?.current?.absolutePosition({ x: 0, y: 0 });
+            }}
           >
             <Layer>
               <KonvaRect
+                ref={backgroundRef}
                 x={0}
                 y={0}
                 height={CANVAS_HEIGHT}
                 width={CANVAS_WIDTH}
-                fill="white"
+                fill={"white"}
                 id="bg"
+                listening={false}
               />
               {images.map((image, index) => (
                 <KonvaImage
@@ -906,9 +969,48 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                   scaleY={arrow.scaleY}
                 />
               ))}
+              {texts.map((text) => (
+                <KonvaText
+                  key={text.id}
+                  text={text.text}
+                  id={text.id}
+                  x={text.x}
+                  y={text.y}
+                  stroke={text.color}
+                  draggable={isDraggable}
+                  strokeWidth={0.2}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragShapeEnd}
+                  onTransformStart={onTransformStart}
+                  onClick={onShapeClick}
+                  scaleX={text.scaleX}
+                  scaleY={text.scaleY}
+                  fontSize={14}
+                />
+              ))}
               <Transformer ref={transformerRef} rotateEnabled={false} />
             </Layer>
           </Stage>
+          {textPosition && (
+            <Input
+              style={{
+                position: "absolute",
+                top: textPosition.y,
+                left: textPosition.x,
+                height: "auto",
+                width: "200px",
+                color,
+              }}
+              onChange={(e) => {
+                setEditText(e.target.value);
+              }}
+              ref={inputRef}
+              value={editText}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onBlurTextField();
+              }}
+            />
+          )}
         </Box>
       </Box>
     </Flex>

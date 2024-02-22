@@ -3,13 +3,17 @@ import { DrawAction } from "./Paint.constants";
 
 export const usePaintKeyBindings = ({
   onAction,
+  isWritingInProgress,
 }: {
   onAction: (action: DrawAction) => void;
+  isWritingInProgress: boolean;
 }) => {
   // TODO: To be replaced with useEffectEvent when released
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isWritingInProgress) return;
       e.preventDefault();
+
       switch (true) {
         case e.ctrlKey && e.key === "z": {
           onAction(DrawAction.Undo);
@@ -49,5 +53,5 @@ export const usePaintKeyBindings = ({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onAction]);
+  }, [onAction, isWritingInProgress]);
 };
