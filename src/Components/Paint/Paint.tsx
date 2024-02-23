@@ -12,7 +12,7 @@ import {
   Transformer,
 } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
-import { Arrow, Circle, Rectangle, Scribble, Text } from "./Paint.types";
+import { Arrow, Circle, Rectangle, Scribble, Shape, Text } from "./Paint.types";
 import {
   CanvasAction,
   DrawAction,
@@ -27,6 +27,7 @@ import {
   Box,
   Button,
   ButtonGroup,
+  Divider,
   Flex,
   FormControl,
   FormLabel,
@@ -43,25 +44,26 @@ import {
   RangeSliderTrack,
   Text as ChakraText,
 } from "@chakra-ui/react";
-import { DiamondHalf, Download, Upload } from "react-bootstrap-icons";
+import {
+  DiamondHalf,
+  Download,
+  Upload,
+  Save,
+  SdCard,
+  Check,
+  CheckLg,
+} from "react-bootstrap-icons";
 import { usePaintKeyBindings } from "./usePaintKeyBindings";
 import { FEATURE_FLAGS } from "../../constants";
+import { usePaintStoreProgress } from "./usePaintStoreProgress";
+import { downloadURI, getNumericVal } from "./Paint.utilities";
+import { ImageFilters as ImageFiltersType } from "../../types";
+import { ImageFilters } from "../ImageFilters";
 
 interface PaintProps {}
 
-const CANVAS_WIDTH = 700;
+const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 550;
-
-const downloadURI = (uri: string | undefined, name: string) => {
-  const link = document.createElement("a");
-  link.download = name;
-  link.href = uri || "";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-const getNumericVal = (val: number | undefined) => val || 0;
 
 export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
   const currentShapeRef = useRef<string>();
@@ -390,22 +392,25 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     [arrows, circles, rectangles, scribbles]
   );
 
-  const onTransformStart = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    setCanvasHistory((prevCanvasHistory) => [
-      ...prevCanvasHistory,
-      {
-        type: CanvasAction.Resize,
-        drawAction: e.target.attrs.name,
-        payload: {
-          id: e.target.attrs.id,
-          scaleX: e.target.attrs.scaleX,
-          scaleY: e.target.attrs.scaleY,
+  const onTransformShapeStart = useCallback(
+    (e: KonvaEventObject<MouseEvent>) => {
+      setCanvasHistory((prevCanvasHistory) => [
+        ...prevCanvasHistory,
+        {
+          type: CanvasAction.Resize,
+          drawAction: e.target.attrs.name,
+          payload: {
+            id: e.target.attrs.id,
+            scaleX: e.target.attrs.scaleX,
+            scaleY: e.target.attrs.scaleY,
+          },
         },
-      },
-    ]);
-  }, []);
+      ]);
+    },
+    []
+  );
 
-  const onDragStart = useCallback((e: KonvaEventObject<MouseEvent>) => {
+  const onDragShapeStart = useCallback((e: KonvaEventObject<MouseEvent>) => {
     setCanvasHistory((prevCanvasHistory) => [
       ...prevCanvasHistory,
       {
@@ -552,7 +557,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     [getSetterByType]
   );
 
-  const onTransformEnd = useCallback(
+  const onTransformShapeEnd = useCallback(
     (e: KonvaEventObject<MouseEvent>) => {
       const type = e.target?.attrs?.name;
       const id = e.target?.attrs?.id;
@@ -637,7 +642,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
 
   usePaintKeyBindings({ onAction, isWritingInProgress: !!textPosition });
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<ImageFiltersType>({
     brightness: 0,
     blur: 0,
     saturation: 4,
@@ -650,14 +655,57 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
     if (inputRef.current) inputRef.current.focus();
   }, [inputRef]);
 
+  const { downloadDrawingState } = usePaintStoreProgress({
+    setTexts,
+    setArrows,
+    setRectangles,
+    setCircles,
+    setScribbles,
+    scribbles,
+    arrows,
+    texts,
+    rectangles,
+    circles,
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 1000);
+  }, [isSaving]);
+
+  const onDownloadProjectClick = useCallback(() => {
+    setIsSaving(true);
+    downloadDrawingState();
+  }, [downloadDrawingState]);
+
+  const getShapeProps = useCallback(
+    (shape: Shape) => ({
+      key: shape.id,
+      id: shape.id,
+      onDragStart: onDragShapeStart,
+      onDragEnd: onDragShapeEnd,
+      onTransformStart: onTransformShapeStart,
+      onTransformEnd: onTransformShapeEnd,
+      onClick: onShapeClick,
+      scaleX: shape.scaleX,
+      scaleY: shape.scaleY,
+      draggable: isDraggable,
+    }),
+    [
+      onDragShapeStart,
+      onDragShapeEnd,
+      onTransformShapeStart,
+      onTransformShapeEnd,
+      onShapeClick,
+      isDraggable,
+    ]
+  );
+
   return (
-    <Flex
-      justifyContent={"center"}
-      m={4}
-      css={`
-        @import url("https://fonts.googleapis.com/css2?family=Aguafina+Script&display=swap");
-      `}
-    >
+    <Flex justifyContent={"center"} m={4}>
       <Box width={`${CANVAS_WIDTH}px`}>
         <Flex justifyContent={"center"}>
           <Flex gap={2} alignItems="center">
@@ -734,122 +782,11 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
                 />
               </PopoverContent>
             </Popover>
-            <Popover>
-              <PopoverTrigger>
-                <IconButton
-                  size="sm"
-                  icon={<DiamondHalf />}
-                  aria-label="Filters"
-                />
-              </PopoverTrigger>
-              <PopoverContent>
-                <PopoverArrow />
-                <PopoverCloseButton />
-
-                <Box p={4}>
-                  <FormControl>
-                    <FormLabel>Brightness</FormLabel>
-                    <RangeSlider
-                      aria-label={["min", "max"]}
-                      min={-1}
-                      max={1}
-                      step={0.01}
-                      value={[filters.brightness]}
-                      onChange={([value]) => {
-                        const images = stageRef?.current?.find(".image");
-
-                        images?.forEach((image: any) => {
-                          image?.cache();
-                          image?.saturation(value);
-                        });
-
-                        setFilters({ ...filters, brightness: value });
-                      }}
-                    >
-                      <RangeSliderTrack>
-                        <RangeSliderFilledTrack />
-                      </RangeSliderTrack>
-                      <RangeSliderThumb index={0} />
-                    </RangeSlider>
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>Blur</FormLabel>
-                    <RangeSlider
-                      aria-label={["min", "max"]}
-                      min={0}
-                      max={40}
-                      step={2}
-                      value={[filters.blur]}
-                      onChange={([value]) => {
-                        const images = stageRef?.current?.find(".image");
-
-                        images?.forEach((image: any) => {
-                          image?.cache();
-                          image?.blurRadius(value);
-                        });
-
-                        setFilters({ ...filters, blur: value });
-                      }}
-                    >
-                      <RangeSliderTrack>
-                        <RangeSliderFilledTrack />
-                      </RangeSliderTrack>
-                      <RangeSliderThumb index={0} />
-                    </RangeSlider>
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>Saturation</FormLabel>
-                    <RangeSlider
-                      aria-label={["min", "max"]}
-                      min={-2}
-                      max={10}
-                      step={0.01}
-                      value={[filters.saturation]}
-                      onChange={([value]) => {
-                        const images = stageRef?.current?.find(".image");
-
-                        images?.forEach((image: any) => {
-                          image?.cache();
-                          image?.saturation(value);
-                        });
-
-                        setFilters({ ...filters, saturation: value });
-                      }}
-                    >
-                      <RangeSliderTrack>
-                        <RangeSliderFilledTrack />
-                      </RangeSliderTrack>
-                      <RangeSliderThumb index={0} />
-                    </RangeSlider>
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>Hue</FormLabel>
-                    <RangeSlider
-                      aria-label={["min", "max"]}
-                      min={0}
-                      max={259}
-                      step={1}
-                      value={[filters.hue]}
-                      onChange={([value]) => {
-                        const images = stageRef?.current?.find(".image");
-
-                        images?.forEach((image: any) => {
-                          image?.cache();
-                          image?.hue(value);
-                        });
-
-                        setFilters({ ...filters, hue: value });
-                      }}
-                    >
-                      <RangeSliderTrack>
-                        <RangeSliderFilledTrack />
-                      </RangeSliderTrack>
-                      <RangeSliderThumb index={0} />
-                    </RangeSlider>
-                  </FormControl>
-                </Box>
-              </PopoverContent>
-            </Popover>
+            <ImageFilters
+              filters={filters}
+              onFilterChange={setFilters}
+              stageRef={stageRef}
+            />
           </Flex>
 
           <Flex gap={4} alignItems="center" height="100%">
@@ -860,7 +797,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
               style={{ display: "none" }}
             />
             <Button
-              leftIcon={<Upload />}
+              leftIcon={<Download />}
               variant="solid"
               onClick={onImportImageClick}
               size="sm"
@@ -868,7 +805,7 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
               Import Image
             </Button>
             <Button
-              leftIcon={<Download />}
+              leftIcon={<Upload />}
               colorScheme="whatsapp"
               variant="solid"
               onClick={onExportClick}
@@ -876,9 +813,15 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
             >
               Export
             </Button>
+            <IconButton
+              aria-label="Download Project File"
+              icon={isSaving ? <CheckLg /> : <SdCard />}
+              colorScheme={isSaving ? "whatsapp" : undefined}
+              onClick={onDownloadProjectClick}
+              size="sm"
+            />
           </Flex>
         </Flex>
-
         <Box
           width={`${CANVAS_WIDTH}px`}
           height={`${CANVAS_HEIGHT}px`}
@@ -933,63 +876,36 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
               ))}
               {rectangles?.map((rectangle) => (
                 <KonvaRect
-                  key={rectangle.id}
                   x={rectangle?.x}
                   y={rectangle?.y}
-                  onClick={onShapeClick}
                   height={rectangle?.height}
                   width={rectangle?.width}
                   stroke={rectangle?.color}
                   name={DrawAction.Rectangle}
-                  id={rectangle.id}
                   strokeWidth={4}
-                  draggable={isDraggable}
-                  onDragStart={onDragStart}
-                  onTransformStart={onTransformStart}
-                  onTransformEnd={onTransformEnd}
-                  onDragEnd={onDragShapeEnd}
-                  scaleX={rectangle.scaleX}
-                  scaleY={rectangle.scaleY}
+                  {...getShapeProps(rectangle)}
                 />
               ))}
               {circles?.map((circle) => (
                 <KonvaCircle
                   name={DrawAction.Circle}
-                  key={circle.id}
-                  id={circle.id}
                   x={circle?.x}
                   y={circle?.y}
                   radius={circle?.radius}
                   stroke={circle?.color}
                   strokeWidth={4}
-                  draggable={isDraggable}
-                  onClick={onShapeClick}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragShapeEnd}
-                  onTransformStart={onTransformStart}
-                  onTransformEnd={onTransformEnd}
-                  scaleX={circle.scaleX}
-                  scaleY={circle.scaleY}
+                  {...getShapeProps(circle)}
                 />
               ))}
               {scribbles.map((scribble) => (
                 <KonvaLine
-                  key={scribble.id}
-                  id={scribble.id}
                   lineCap="round"
                   lineJoin="round"
                   stroke={scribble?.color}
                   strokeWidth={4}
                   points={scribble.points}
                   name={DrawAction.Scribble}
-                  onClick={onShapeClick}
-                  draggable={isDraggable}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragShapeEnd}
-                  onTransformStart={onTransformStart}
-                  onTransformEnd={onTransformEnd}
-                  scaleX={scribble.scaleX}
-                  scaleY={scribble.scaleY}
+                  {...getShapeProps(scribble)}
                   globalCompositeOperation={
                     scribble.isBrush ? "source-over" : "destination-out"
                   }
@@ -998,41 +914,24 @@ export const Paint: React.FC<PaintProps> = React.memo(function Paint({}) {
               {arrows.map((arrow) => (
                 <KonvaArrow
                   name={DrawAction.Arrow}
-                  key={arrow.id}
-                  id={arrow.id}
                   points={arrow.points}
                   fill={arrow.color}
                   stroke={arrow.color}
                   strokeWidth={4}
-                  onClick={onShapeClick}
-                  draggable={isDraggable}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragShapeEnd}
-                  onTransformStart={onTransformStart}
-                  onTransformEnd={onTransformEnd}
-                  scaleX={arrow.scaleX}
-                  scaleY={arrow.scaleY}
+                  {...getShapeProps(arrow)}
                 />
               ))}
               {texts.map((text) => (
                 <KonvaText
                   name={DrawAction.Text}
-                  key={text.id}
                   text={text.text}
-                  id={text.id}
                   x={text.x}
                   y={text.y}
                   stroke={text.color}
-                  draggable={isDraggable}
-                  strokeWidth={0.2}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragShapeEnd}
-                  onTransformStart={onTransformStart}
-                  onTransformEnd={onTransformEnd}
-                  onClick={onShapeClick}
-                  scaleX={text.scaleX}
-                  scaleY={text.scaleY}
+                  strokeWidth={1}
+                  letterSpacing={1.7}
                   fontSize={14}
+                  {...getShapeProps(text)}
                 />
               ))}
               <Transformer ref={transformerRef} rotateEnabled={false} />
